@@ -1,154 +1,186 @@
+-- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
 local UserInputService = game:GetService("UserInputService")
 
-local espColor = Color3.fromRGB(255, 80, 10)
-local textSize = 14
+-- Configuration
+local espColor = Color3.fromRGB(255, 0, 0)  -- Default red color for ESP
+local highlightColor = Color3.fromRGB(0, 255, 0)  -- Green color for the closest player
+local textSize = 10  -- Smaller font size
 local toggleKey = Enum.KeyCode.T  -- Key to toggle ESP
 local espEnabled = true
 
--- Function to create ESP using Drawing objects
-local function createESP(player)
-    if player == Players.LocalPlayer then return end  -- Skip ESP for the local player
+-- Helper function to create Drawing objects
+local function createDrawingObject(name, text)
+    local drawing = Drawing.new("Text")
+    drawing.Text = text
+    drawing.Color = espColor
+    drawing.Size = textSize
+    drawing.Center = true
+    drawing.Outline = true
+    drawing.OutlineColor = Color3.fromRGB(0, 0, 0)
+    drawing.Transparency = 0.5
+    drawing.Visible = false
+    drawing.Font = 2  -- Use "SourceSansBold" for a sharp font
+    return drawing
+end
 
-    local espObjects = {}  -- Table to keep track of Drawing objects
+-- Function to update ESP for a single player
+local function updateESP(espObjects, head, player)
+    local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+    if onScreen then
+        espObjects.NameLabel.Position = Vector2.new(screenPos.X, screenPos.Y - 60)
+        espObjects.WeaponLabel.Position = Vector2.new(screenPos.X, screenPos.Y - 40)
+        espObjects.HealthLabel.Position = Vector2.new(screenPos.X, screenPos.Y - 20)
+        espObjects.DistanceLabel.Position = Vector2.new(screenPos.X, screenPos.Y)
 
-    local function setupESP(character)
-        local head = character:FindFirstChild("Head")
-        if not head then
-            warn("No Head found for character:", player.Name)
-            return
+        -- Update weapon info
+        local primaryWeapon = "Unknown"
+        local secondaryWeapon = "Unknown"
+        local stats = player:FindFirstChild("Stats")
+        if stats then
+            if stats:FindFirstChild("Primary") then
+                primaryWeapon = stats.Primary.Value
+            end
+            if stats:FindFirstChild("Secondary") then
+                secondaryWeapon = stats.Secondary.Value
+            end
+        end
+        espObjects.WeaponLabel.Text = string.format("Primary: %s | Secondary: %s", primaryWeapon, secondaryWeapon)
+
+        -- Update health info
+        local health = "Unknown"
+        local healthStat = player:FindFirstChild("Stats") and player.Stats:FindFirstChild("Health")
+        if healthStat then
+            health = tostring(math.floor(healthStat.Value))
+        end
+        espObjects.HealthLabel.Text = string.format("Health: %s", health)
+
+        -- Update distance
+        local localPlayer = Players.LocalPlayer
+        if localPlayer and localPlayer.Character then
+            local distance = (head.Position - localPlayer.Character:FindFirstChild("HumanoidRootPart").Position).Magnitude
+            espObjects.DistanceLabel.Text = string.format("(%d studs)", math.floor(distance))
         end
 
-        -- Create Drawing objects for name, weapons, distance, and health
-        local nameLabel = Drawing.new("Text")
-        nameLabel.Text = player.Name
-        nameLabel.Color = espColor
-        nameLabel.Size = textSize
-        nameLabel.Center = true
-        nameLabel.Outline = true
-        nameLabel.OutlineColor = Color3.fromRGB(0, 0, 0)
-        nameLabel.Transparency = 1
-        nameLabel.Visible = false
-        espObjects["Name"] = nameLabel
+        -- Set visibility
+        espObjects.NameLabel.Visible = espEnabled
+        espObjects.WeaponLabel.Visible = espEnabled
+        espObjects.HealthLabel.Visible = espEnabled
+        espObjects.DistanceLabel.Visible = espEnabled
 
-        local weaponLabel = Drawing.new("Text")
-        weaponLabel.Text = "Primary: Unknown | Secondary: Unknown"
-        weaponLabel.Color = espColor
-        weaponLabel.Size = textSize - 2
-        weaponLabel.Center = true
-        weaponLabel.Outline = true
-        weaponLabel.OutlineColor = Color3.fromRGB(0, 0, 0)
-        weaponLabel.Transparency = 1
-        weaponLabel.Visible = false
-        espObjects["Weapon"] = weaponLabel
-
-        local distanceLabel = Drawing.new("Text")
-        distanceLabel.Text = ""
-        distanceLabel.Color = espColor
-        distanceLabel.Size = textSize - 2
-        distanceLabel.Center = true
-        distanceLabel.Outline = true
-        distanceLabel.OutlineColor = Color3.fromRGB(0, 0, 0)
-        distanceLabel.Transparency = 1
-        distanceLabel.Visible = false
-        espObjects["Distance"] = distanceLabel
-
-        local healthLabel = Drawing.new("Text")
-        healthLabel.Text = "Health: Unknown"
-        healthLabel.Color = espColor
-        healthLabel.Size = textSize - 2
-        healthLabel.Center = true
-        healthLabel.Outline = true
-        healthLabel.OutlineColor = Color3.fromRGB(0, 0, 0)
-        healthLabel.Transparency = 1
-        healthLabel.Visible = false
-        espObjects["Health"] = healthLabel
-
-        -- Update Drawing objects
-        local function updateESP()
-            if espEnabled and head then
-                local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
-                if onScreen then
-                    nameLabel.Position = Vector2.new(screenPos.X, screenPos.Y - 80)
-                    weaponLabel.Position = Vector2.new(screenPos.X, screenPos.Y - 60)
-                    healthLabel.Position = Vector2.new(screenPos.X, screenPos.Y - 40)
-                    distanceLabel.Position = Vector2.new(screenPos.X, screenPos.Y - 20)
-
-                    -- Update weapon info
-                    local primaryWeapon = "Unknown"
-                    local secondaryWeapon = "Unknown"
-                    local stats = player:FindFirstChild("Stats")
-                    if stats then
-                        if stats:FindFirstChild("Primary") then
-                            primaryWeapon = stats.Primary.Value
-                        end
-                        if stats:FindFirstChild("Secondary") then
-                            secondaryWeapon = stats.Secondary.Value
-                        end
-                    end
-                    weaponLabel.Text = string.format("Primary: %s | Secondary: %s", primaryWeapon, secondaryWeapon)
-
-                    -- Update health info with rounding
-                    local health = "Unknown"
-                    local healthStat = player:FindFirstChild("Stats") and player.Stats:FindFirstChild("Health")
-                    if healthStat then
-                        health = tostring(math.floor(healthStat.Value))  -- Round health to whole number
-                    end
-                    healthLabel.Text = string.format("Health: %s", health)
-
-                    -- Update distance
-                    local localPlayer = Players.LocalPlayer
-                    if localPlayer and localPlayer.Character then
-                        local distance = (head.Position - localPlayer.Character:FindFirstChild("HumanoidRootPart").Position).Magnitude
-                        distanceLabel.Text = string.format("(%d studs)", math.floor(distance))
-                    end
-
-                    nameLabel.Visible = true
-                    weaponLabel.Visible = true
-                    healthLabel.Visible = true
-                    distanceLabel.Visible = true
-                else
-                    nameLabel.Visible = false
-                    weaponLabel.Visible = false
-                    healthLabel.Visible = false
-                    distanceLabel.Visible = false
+        -- Highlight the closest player
+        local closestPlayer = nil
+        local minDistance = math.huge
+        for _, otherPlayer in pairs(Players:GetPlayers()) do
+            if otherPlayer ~= Players.LocalPlayer and otherPlayer.Character and otherPlayer.Character:FindFirstChild("Head") then
+                local otherHead = otherPlayer.Character.Head
+                local dist = (otherHead.Position - Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart").Position).Magnitude
+                if dist < minDistance then
+                    minDistance = dist
+                    closestPlayer = otherPlayer
                 end
-            else
-                nameLabel.Visible = false
-                weaponLabel.Visible = false
-                healthLabel.Visible = false
-                distanceLabel.Visible = false
             end
         end
 
-        -- Update ESP every frame
-        RunService.RenderStepped:Connect(updateESP)
+        if closestPlayer == player then
+            -- Highlight the closest player
+            espObjects.NameLabel.Color = highlightColor
+            espObjects.WeaponLabel.Color = highlightColor
+            espObjects.HealthLabel.Color = highlightColor
+            espObjects.DistanceLabel.Color = highlightColor
+            espObjects.NameLabel.ZIndex = 2
+            espObjects.WeaponLabel.ZIndex = 2
+            espObjects.HealthLabel.ZIndex = 2
+            espObjects.DistanceLabel.ZIndex = 2
+        else
+            -- Reset color and ZIndex for other players
+            espObjects.NameLabel.Color = espColor
+            espObjects.WeaponLabel.Color = espColor
+            espObjects.HealthLabel.Color = espColor
+            espObjects.DistanceLabel.Color = espColor
+            espObjects.NameLabel.ZIndex = 1
+            espObjects.WeaponLabel.ZIndex = 1
+            espObjects.HealthLabel.ZIndex = 1
+            espObjects.DistanceLabel.ZIndex = 1
+        end
+    else
+        espObjects.NameLabel.Visible = false
+        espObjects.WeaponLabel.Visible = false
+        espObjects.HealthLabel.Visible = false
+        espObjects.DistanceLabel.Visible = false
+    end
+end
+
+-- Function to setup ESP for a player's character
+local function setupESP(character, player)
+    local head = character:FindFirstChild("Head")
+    if not head then
+        warn("No Head found for character:", player.Name)
+        return
     end
 
-    -- Setup ESP for player character when it respawns
-    player.CharacterAdded:Connect(function(character)
-        setupESP(character)
+    -- Create ESP objects
+    local espObjects = {
+        NameLabel = createDrawingObject("Name", player.Name),
+        WeaponLabel = createDrawingObject("Weapon", "Primary: Unknown | Secondary: Unknown"),
+        HealthLabel = createDrawingObject("Health", "Health: Unknown"),
+        DistanceLabel = createDrawingObject("Distance", "")
+    }
+
+    -- Store espObjects in character for cleanup
+    local espContainer = Instance.new("Folder")
+    espContainer.Name = "ESPObjects"
+    espContainer.Parent = character
+    for name, obj in pairs(espObjects) do
+        obj.Parent = espContainer
+    end
+
+    -- Update ESP at a lower frequency
+    local function update()
+        if espEnabled then
+            pcall(function() updateESP(espObjects, head, player) end)
+        end
+    end
+
+    -- Connect update function to a slower update frequency
+    local connection
+    connection = RunService.RenderStepped:Connect(function()
+        wait(0.1)  -- Update every 0.1 seconds
+        update()
     end)
 
-    -- Remove ESP if character is removed
-    local function removeESP()
-        for _, obj in pairs(espObjects) do
-            if obj and obj:IsA("Drawing") then
-                obj:Remove()
-            end
+    -- Cleanup function
+    local function cleanup()
+        if connection then
+            connection:Disconnect()
         end
-        espObjects = {}
+        if espContainer then
+            espContainer:Destroy()
+        end
     end
 
-    -- Monitor for player character removal and perform cleanup
-    player.CharacterRemoving:Connect(removeESP)
+    -- Cleanup on character removal
+    character.AncestryChanged:Connect(function(_, parent)
+        if not parent then
+            cleanup()
+        end
+    end)
+end
 
-    -- Delay to ensure setup
-    wait(1)  -- Wait for 1 second to ensure proper setup
+-- Function to initialize ESP for a player
+local function initializeESP(player)
+    if player == Players.LocalPlayer then
+        return  -- Skip ESP for the local player
+    end
+
+    player.CharacterAdded:Connect(function(character)
+        setupESP(character, player)
+    end)
+
     if player.Character then
-        setupESP(player.Character)
+        setupESP(player.Character, player)
     end
 end
 
@@ -156,14 +188,26 @@ end
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if not gameProcessed and input.KeyCode == toggleKey then
         espEnabled = not espEnabled
+        if not espEnabled then
+            -- Hide all ESP labels when disabled
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= Players.LocalPlayer and player.Character then
+                    local espContainer = player.Character:FindFirstChild("ESPObjects")
+                    if espContainer then
+                        for _, obj in pairs(espContainer:GetChildren()) do
+                            if obj:IsA("Drawing") then
+                                obj.Visible = false
+                            end
+                        end
+                    end
+                end
+            end
+        end
     end
 end)
 
 -- Initialize ESP for all players
-Players.PlayerAdded:Connect(function(player)
-    createESP(player)
-end)
-
+Players.PlayerAdded:Connect(initializeESP)
 for _, player in pairs(Players:GetPlayers()) do
-    createESP(player)
+    initializeESP(player)
 end
