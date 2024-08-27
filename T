@@ -125,6 +125,11 @@ local function setupESP(character, player)
         if espContainer then
             espContainer:Destroy()
         end
+        for _, obj in pairs(espObjects) do
+            if obj then
+                obj.Visible = false
+            end
+        end
     end
 
     -- Cleanup on character removal
@@ -133,6 +138,9 @@ local function setupESP(character, player)
             cleanup()
         end
     end)
+
+    -- Cleanup when the player leaves
+    player.CharacterRemoving:Connect(cleanup)
 end
 
 -- Initialize ESP for a player
