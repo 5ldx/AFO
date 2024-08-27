@@ -1,53 +1,169 @@
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Radioactive Evasion",30,30)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Radiation Engine",15,15)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Virtual Diversion",15,15)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Overseer Of Reality",3,3)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Corrupt Laboratory",5,5)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Radiation Engine",8,8)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Radioactive Evasion",10,10)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Radiation Engine",5,5)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Virtual Diversion",5,5)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Taurus's Sentinel",2,2)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Taurus's Sentinel",6,6)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("The Unknown Fallen",2,2)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Unleashed Terror",1,1)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Peridot Despise",15,15)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Radiation Engine",12,12)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Radioactive Evasion",6,6)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Radiation Engine",3,3)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Virtual Diversion",3,3)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Radiation Drive",3,3)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Peridot Despise",50,50)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Nuclear Warzone",1,1)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Angel's Blessing",9,9)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Master Spark Blaster",3,3)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Demonic Blessing",1,1)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Dragonglass Blaster",120,120)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Draconic Energy Bombarder",60,60)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Angel's Blessing",42,42)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Cataclysm",2,2)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Cataclysmic Obliteration",1,1)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Cataclysmic Destiny",1,1)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Void Drive",45,45)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Void Overdrive",9,9)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Star Consumer",9,9)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Void Drive",30,30)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Void Overdrive",6,6)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Darkness Envelope",3,3)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Void Star",1,1)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Extraterrestrial Vonsynger",1,1)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Angel's Blessing",18,18)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Master Spark Blaster",6,6)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Demonic Blessing",2,2)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Dragonglass Blaster",240,240)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Draconic Energy Bombarder",120,120)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Angel's Blessing",84,84)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Cataclysm",4,4)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Cataclysmic Obliteration",2,2)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Angel's Blessing",90,90)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Master Spark Blaster",30,30)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Demonic Blessing",10,10)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Hydra Blaster",60,60)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Orbital Destroyer",5,5)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("Astral Annihilator",1,1)
-game:GetService("ReplicatedStorage").BuyItem:InvokeServer("All For One",1,1)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local UserInputService = game:GetService("UserInputService")
+
+local espColor = Color3.fromRGB(255, 80, 10)
+local textSize = 14
+local toggleKey = Enum.KeyCode.T  -- Key to toggle ESP
+local espEnabled = true
+
+-- Function to create ESP using Drawing objects
+local function createESP(player)
+    if player == Players.LocalPlayer then return end  -- Skip ESP for the local player
+
+    local espObjects = {}  -- Table to keep track of Drawing objects
+
+    local function setupESP(character)
+        local head = character:FindFirstChild("Head")
+        if not head then
+            warn("No Head found for character:", player.Name)
+            return
+        end
+
+        -- Create Drawing objects for name, weapons, distance, and health
+        local nameLabel = Drawing.new("Text")
+        nameLabel.Text = player.Name
+        nameLabel.Color = espColor
+        nameLabel.Size = textSize
+        nameLabel.Center = true
+        nameLabel.Outline = true
+        nameLabel.OutlineColor = Color3.fromRGB(0, 0, 0)
+        nameLabel.Transparency = 1
+        nameLabel.Visible = false
+        espObjects["Name"] = nameLabel
+
+        local weaponLabel = Drawing.new("Text")
+        weaponLabel.Text = "Primary: Unknown | Secondary: Unknown"
+        weaponLabel.Color = espColor
+        weaponLabel.Size = textSize - 2
+        weaponLabel.Center = true
+        weaponLabel.Outline = true
+        weaponLabel.OutlineColor = Color3.fromRGB(0, 0, 0)
+        weaponLabel.Transparency = 1
+        weaponLabel.Visible = false
+        espObjects["Weapon"] = weaponLabel
+
+        local distanceLabel = Drawing.new("Text")
+        distanceLabel.Text = ""
+        distanceLabel.Color = espColor
+        distanceLabel.Size = textSize - 2
+        distanceLabel.Center = true
+        distanceLabel.Outline = true
+        distanceLabel.OutlineColor = Color3.fromRGB(0, 0, 0)
+        distanceLabel.Transparency = 1
+        distanceLabel.Visible = false
+        espObjects["Distance"] = distanceLabel
+
+        local healthLabel = Drawing.new("Text")
+        healthLabel.Text = "Health: Unknown"
+        healthLabel.Color = espColor
+        healthLabel.Size = textSize - 2
+        healthLabel.Center = true
+        healthLabel.Outline = true
+        healthLabel.OutlineColor = Color3.fromRGB(0, 0, 0)
+        healthLabel.Transparency = 1
+        healthLabel.Visible = false
+        espObjects["Health"] = healthLabel
+
+        -- Update Drawing objects
+        local function updateESP()
+            if espEnabled and head then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                if onScreen then
+                    nameLabel.Position = Vector2.new(screenPos.X, screenPos.Y - 80)
+                    weaponLabel.Position = Vector2.new(screenPos.X, screenPos.Y - 60)
+                    healthLabel.Position = Vector2.new(screenPos.X, screenPos.Y - 40)
+                    distanceLabel.Position = Vector2.new(screenPos.X, screenPos.Y - 20)
+
+                    -- Update weapon info
+                    local primaryWeapon = "Unknown"
+                    local secondaryWeapon = "Unknown"
+                    local stats = player:FindFirstChild("Stats")
+                    if stats then
+                        if stats:FindFirstChild("Primary") then
+                            primaryWeapon = stats.Primary.Value
+                        end
+                        if stats:FindFirstChild("Secondary") then
+                            secondaryWeapon = stats.Secondary.Value
+                        end
+                    end
+                    weaponLabel.Text = string.format("Primary: %s | Secondary: %s", primaryWeapon, secondaryWeapon)
+
+                    -- Update health info with rounding
+                    local health = "Unknown"
+                    local healthStat = player:FindFirstChild("Stats") and player.Stats:FindFirstChild("Health")
+                    if healthStat then
+                        health = tostring(math.floor(healthStat.Value))  -- Round health to whole number
+                    end
+                    healthLabel.Text = string.format("Health: %s", health)
+
+                    -- Update distance
+                    local localPlayer = Players.LocalPlayer
+                    if localPlayer and localPlayer.Character then
+                        local distance = (head.Position - localPlayer.Character:FindFirstChild("HumanoidRootPart").Position).Magnitude
+                        distanceLabel.Text = string.format("(%d studs)", math.floor(distance))
+                    end
+
+                    nameLabel.Visible = true
+                    weaponLabel.Visible = true
+                    healthLabel.Visible = true
+                    distanceLabel.Visible = true
+                else
+                    nameLabel.Visible = false
+                    weaponLabel.Visible = false
+                    healthLabel.Visible = false
+                    distanceLabel.Visible = false
+                end
+            else
+                nameLabel.Visible = false
+                weaponLabel.Visible = false
+                healthLabel.Visible = false
+                distanceLabel.Visible = false
+            end
+        end
+
+        -- Update ESP every frame
+        RunService.RenderStepped:Connect(updateESP)
+    end
+
+    -- Setup ESP for player character when it respawns
+    player.CharacterAdded:Connect(function(character)
+        setupESP(character)
+    end)
+
+    -- Remove ESP if character is removed
+    local function removeESP()
+        for _, obj in pairs(espObjects) do
+            if obj and obj:IsA("Drawing") then
+                obj:Remove()
+            end
+        end
+        espObjects = {}
+    end
+
+    -- Monitor for player character removal and perform cleanup
+    player.CharacterRemoving:Connect(removeESP)
+
+    -- Delay to ensure setup
+    wait(1)  -- Wait for 1 second to ensure proper setup
+    if player.Character then
+        setupESP(player.Character)
+    end
+end
+
+-- Toggle ESP on and off
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == toggleKey then
+        espEnabled = not espEnabled
+    end
+end)
+
+-- Initialize ESP for all players
+Players.PlayerAdded:Connect(function(player)
+    createESP(player)
+end)
+
+for _, player in pairs(Players:GetPlayers()) do
+    createESP(player)
+end
