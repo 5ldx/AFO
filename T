@@ -1,184 +1,255 @@
--- Services
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Camera = workspace.CurrentCamera
-local UserInputService = game:GetService("UserInputService")
+-- Gui to Lua
+-- Version: 3.2
 
--- Configuration
-local defaultColor = Color3.fromRGB(255, 0, 0)  -- Really bright red
-local highlightColor = Color3.fromRGB(0, 255, 0)  -- Bright green
-local textSize = 14 * 1.4  -- Font size increased by 40%
-local toggleKey = Enum.KeyCode.T  -- Key to toggle ESP
-local espEnabled = true
+-- Instances:
 
--- Helper function to create Drawing objects
-local function createDrawingObject(text)
-    local drawing = Drawing.new("Text")
-    drawing.Text = text
-    drawing.Color = defaultColor
-    drawing.Size = textSize
-    drawing.Center = true
-    drawing.Outline = true
-    drawing.OutlineColor = Color3.fromRGB(0, 0, 0)
-    drawing.Transparency = 0.5
-    drawing.Visible = false
-    drawing.Font = Drawing.Fonts.UI
-    return drawing
-end
+local GuiforAR2 = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local TextButton = Instance.new("TextButton")
+local TextButton_2 = Instance.new("TextButton")
+local TextButton_3 = Instance.new("TextButton")
+local TextButton_4 = Instance.new("TextButton")
+local Frame_2 = Instance.new("Frame")
 
--- Update ESP for a single player
-local function updateESP(espObjects, head, player)
-    local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
-    local localPlayer = Players.LocalPlayer
-    local isClosest = false
+--Properties:
 
-    if onScreen then
-        espObjects.NameLabel.Position = Vector2.new(screenPos.X, screenPos.Y - 60)
-        espObjects.WeaponLabel.Position = Vector2.new(screenPos.X, screenPos.Y - 40)
-        espObjects.HealthLabel.Position = Vector2.new(screenPos.X, screenPos.Y - 20)
-        espObjects.DistanceLabel.Position = Vector2.new(screenPos.X, screenPos.Y)
+GuiforAR2.Name = "Gui for AR2"
+GuiforAR2.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+GuiforAR2.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-        -- Update weapon info
-        local stats = player:FindFirstChild("Stats")
-        local primaryWeapon = stats and stats:FindFirstChild("Primary") and stats.Primary.Value or "Unknown"
-        local secondaryWeapon = stats and stats:FindFirstChild("Secondary") and stats.Secondary.Value or "Unknown"
-        espObjects.WeaponLabel.Text = string.format("Primary: %s | Secondary: %s", primaryWeapon, secondaryWeapon)
+Frame.Parent = GuiforAR2
+Frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+Frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Frame.BorderSizePixel = 0
+Frame.Position = UDim2.new(0.266597331, 0, 0.245024875, 0)
+Frame.Size = UDim2.new(0, 532, 0, 286)
+Frame.Style = Enum.FrameStyle.DropShadow
 
-        -- Update health info
-        local healthStat = player:FindFirstChild("Stats") and player.Stats:FindFirstChild("Health")
-        local health = healthStat and tostring(math.floor(healthStat.Value)) or "Unknown"
-        espObjects.HealthLabel.Text = string.format("Health: %s", health)
+TextButton.Parent = Frame
+TextButton.BackgroundColor3 = Color3.fromRGB(255, 160, 177)
+TextButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
+TextButton.BorderSizePixel = 0
+TextButton.Position = UDim2.new(0.512139559, 0, 0.474742234, 0)
+TextButton.Size = UDim2.new(0, 250, 0, 39)
+TextButton.Style = Enum.ButtonStyle.RobloxRoundButton
+TextButton.Font = Enum.Font.SourceSans
+TextButton.Text = "Hitreg expander, soon"
+TextButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+TextButton.TextSize = 14.000
 
-        -- Update distance
-        if localPlayer.Character then
-            local distance = (head.Position - localPlayer.Character:FindFirstChild("HumanoidRootPart").Position).Magnitude
-            espObjects.DistanceLabel.Text = string.format("(%d studs)", math.floor(distance))
-        end
-
-        -- Highlight the closest player
-        local minDistance = math.huge
-        for _, otherPlayer in pairs(Players:GetPlayers()) do
-            if otherPlayer ~= localPlayer and otherPlayer.Character and otherPlayer.Character:FindFirstChild("Head") then
-                local dist = (otherPlayer.Character.Head.Position - localPlayer.Character.HumanoidRootPart.Position).Magnitude
-                if dist < minDistance then
-                    minDistance = dist
-                    isClosest = (otherPlayer == player)
-                end
-            end
-        end
-
-        local color = isClosest and highlightColor or defaultColor
-        espObjects.NameLabel.Color = color
-        espObjects.WeaponLabel.Color = color
-        espObjects.HealthLabel.Color = color
-        espObjects.DistanceLabel.Color = color
-        espObjects.NameLabel.ZIndex = isClosest and 2 or 1
-        espObjects.WeaponLabel.ZIndex = isClosest and 2 or 1
-        espObjects.HealthLabel.ZIndex = isClosest and 2 or 1
-        espObjects.DistanceLabel.ZIndex = isClosest and 2 or 1
-
-        espObjects.NameLabel.Visible = espEnabled
-        espObjects.WeaponLabel.Visible = espEnabled
-        espObjects.HealthLabel.Visible = espEnabled
-        espObjects.DistanceLabel.Visible = espEnabled
-    else
-        for _, obj in pairs(espObjects) do
-            obj.Visible = false
-        end
-    end
-end
-
--- Setup ESP for a player's character
-local function setupESP(character, player)
-    local head = character:FindFirstChild("Head")
-    if not head then
-        warn("No Head found for character:", player.Name)
-        return
-    end
-
-    -- Create ESP objects
-    local espObjects = {
-        NameLabel = createDrawingObject(player.Name),
-        WeaponLabel = createDrawingObject("Primary: Unknown | Secondary: Unknown"),
-        HealthLabel = createDrawingObject("Health: Unknown"),
-        DistanceLabel = createDrawingObject("")
-    }
-
-    -- Store espObjects in character for cleanup
-    local espContainer = Instance.new("Folder", character)
-    espContainer.Name = "ESPObjects"
-    for name, obj in pairs(espObjects) do
-        obj.Parent = espContainer
-    end
-
-    -- Update ESP at a lower frequency
-    local connection
-    connection = RunService.RenderStepped:Connect(function()
-        pcall(function() updateESP(espObjects, head, player) end)
-    end)
-
-    -- Cleanup function
-    local function cleanup()
-        if connection then
-            connection:Disconnect()
-        end
-        if espContainer then
-            espContainer:Destroy()
-        end
-        for _, obj in pairs(espObjects) do
-            if obj then
-                obj.Visible = false
-            end
-        end
-    end
-
-    -- Cleanup on character removal
-    character.AncestryChanged:Connect(function(_, parent)
-        if not parent then
-            cleanup()
-        end
-    end)
-
-    -- Cleanup when the player leaves
-    player.CharacterRemoving:Connect(cleanup)
-end
-
--- Initialize ESP for a player
-local function initializeESP(player)
-    if player == Players.LocalPlayer then return end  -- Skip local player
-
-    player.CharacterAdded:Connect(function(character)
-        setupESP(character, player)
-    end)
-
-    if player.Character then
-        setupESP(player.Character, player)
-    end
-end
-
--- Toggle ESP on and off
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == toggleKey then
-        espEnabled = not espEnabled
-        if not espEnabled then
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= Players.LocalPlayer and player.Character then
-                    local espContainer = player.Character:FindFirstChild("ESPObjects")
-                    if espContainer then
-                        for _, obj in pairs(espContainer:GetChildren()) do
-                            if obj:IsA("Drawing") then
-                                obj.Visible = false
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
+TextButton_2.Parent = Frame
+TextButton_2.BackgroundColor3 = Color3.fromRGB(255, 117, 37)
+TextButton_2.BorderColor3 = Color3.fromRGB(0, 0, 0)
+TextButton_2.BorderSizePixel = 0
+TextButton_2.Position = UDim2.new(-0.00140552956, 0, 0.315031469, 0)
+TextButton_2.Size = UDim2.new(0, 250, 0, 39)
+TextButton_2.Style = Enum.ButtonStyle.RobloxRoundButton
+TextButton_2.Font = Enum.Font.SourceSans
+TextButton_2.Text = "ESP, T to e/d"
+TextButton_2.TextColor3 = Color3.fromRGB(0, 0, 0)
+TextButton_2.TextSize = 14.000
+TextButton_2.MouseButton1Down:connect(function()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/5ldx/AFO/main/T"))()
 end)
 
--- Initialize ESP for all players
-Players.PlayerAdded:Connect(initializeESP)
-for _, player in pairs(Players:GetPlayers()) do
-    initializeESP(player)
+TextButton_3.Parent = Frame
+TextButton_3.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+TextButton_3.BorderColor3 = Color3.fromRGB(0, 0, 0)
+TextButton_3.BorderSizePixel = 0
+TextButton_3.Position = UDim2.new(-0.000537958345, 0, 0.476464331, 0)
+TextButton_3.Size = UDim2.new(0, 250, 0, 39)
+TextButton_3.Style = Enum.ButtonStyle.RobloxRoundButton
+TextButton_3.Font = Enum.Font.SourceSans
+TextButton_3.Text = "Performance booster"
+TextButton_3.TextColor3 = Color3.fromRGB(0, 0, 0)
+TextButton_3.TextSize = 14.000
+TextButton_3.MouseButton1Down:connect(function()
+	local function optimizeParticleEffects()
+		for _, particleEmitter in ipairs(workspace:GetDescendants()) do
+			if particleEmitter:IsA("ParticleEmitter") then
+				particleEmitter.Rate = 10 -- Reduce the rate of particles
+				particleEmitter.Lifetime = NumberRange.new(0.5) -- Shorter lifetime for particles
+				particleEmitter.Size = NumberSequence.new(0.5) -- Reduce particle size
+				print("Particle emitter optimized.")
+			end
+		end
+	end
+
+	optimizeParticleEffects()
+
+	local function createBillboard(position)
+		local billboard = Instance.new("BillboardGui")
+		billboard.Size = UDim2.new(0, 100, 0, 100) -- Size of the billboard
+		billboard.Adornee = Instance.new("Part", workspace) -- Create a part to attach the billboard to
+		billboard.Adornee.Position = position
+
+		local image = Instance.new("ImageLabel", billboard)
+		image.Size = UDim2.new(1, 0, 1, 0)
+		image.Image = "rbxassetid://YOUR_IMAGE_ID" -- Replace with your image ID
+
+		print("Billboard created at " .. tostring(position))
+	end
+
+	createBillboard(Vector3.new(0, 10, 0)) -- Example usage
+
+	local function disableLightingEffects()
+		local Lighting = game:GetService("Lighting")
+		Lighting.ShadowSoftness = 0 -- Disable shadows
+		Lighting.FogEnd = 0 -- Disable fog
+		Lighting.OutdoorAmbient = Color3.new(1, 1, 1) -- Set outdoor ambient light to a flat color
+		print("Unused lighting effects disabled.")
+	end
+
+	disableLightingEffects()
+
+	-- Script to Change All Parts to Smooth Plastic
+
+	local function changePartsToSmoothPlastic()
+		for _, part in ipairs(workspace:GetDescendants()) do
+			if part:IsA("BasePart") then
+				-- Change the material to SmoothPlastic
+				part.Material = Enum.Material.SmoothPlastic
+				-- Optionally, set the color to a default or specific color
+				part.Color = Color3.new(0.8, 0.8, 0.8) -- Light gray color
+			end
+		end
+		print("All parts changed to Smooth Plastic.")
+	end
+
+	-- Call the function to execute
+	changePartsToSmoothPlastic()
+end)
+
+TextButton_4.Parent = Frame
+TextButton_4.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+TextButton_4.BorderColor3 = Color3.fromRGB(0, 0, 0)
+TextButton_4.BorderSizePixel = 0
+TextButton_4.Position = UDim2.new(0.512706876, 0, 0.314999998, 0)
+TextButton_4.Size = UDim2.new(0, 250, 0, 39)
+TextButton_4.Style = Enum.ButtonStyle.RobloxRoundButton
+TextButton_4.Font = Enum.Font.SourceSans
+TextButton_4.Text = "Cham"
+TextButton_4.TextColor3 = Color3.fromRGB(0, 0, 0)
+TextButton_4.TextSize = 14.000
+TextButton_4.MouseButton1Down:connect(function()
+	local function optimizeParticleEffects()
+		for _, particleEmitter in ipairs(workspace:GetDescendants()) do
+			if particleEmitter:IsA("ParticleEmitter") then
+				particleEmitter.Rate = 10 -- Reduce the rate of particles
+				particleEmitter.Lifetime = NumberRange.new(0.5) -- Shorter lifetime for particles
+				particleEmitter.Size = NumberSequence.new(0.5) -- Reduce particle size
+				print("Particle emitter optimized.")
+			end
+		end
+	end
+
+	optimizeParticleEffects()
+
+	local function createBillboard(position)
+		local billboard = Instance.new("BillboardGui")
+		billboard.Size = UDim2.new(0, 100, 0, 100) -- Size of the billboard
+		billboard.Adornee = Instance.new("Part", workspace) -- Create a part to attach the billboard to
+		billboard.Adornee.Position = position
+
+		local image = Instance.new("ImageLabel", billboard)
+		image.Size = UDim2.new(1, 0, 1, 0)
+		image.Image = "rbxassetid://YOUR_IMAGE_ID" -- Replace with your image ID
+
+		print("Billboard created at " .. tostring(position))
+	end
+
+	createBillboard(Vector3.new(0, 10, 0)) -- Example usage
+
+	local function disableLightingEffects()
+		local Lighting = game:GetService("Lighting")
+		Lighting.ShadowSoftness = 0 -- Disable shadows
+		Lighting.FogEnd = 0 -- Disable fog
+		Lighting.OutdoorAmbient = Color3.new(1, 1, 1) -- Set outdoor ambient light to a flat color
+		print("Unused lighting effects disabled.")
+	end
+
+	disableLightingEffects()
+
+	-- Script to Change All Parts to Smooth Plastic
+
+	local function changePartsToSmoothPlastic()
+		for _, part in ipairs(workspace:GetDescendants()) do
+			if part:IsA("BasePart") then
+				-- Change the material to SmoothPlastic
+				part.Material = Enum.Material.SmoothPlastic
+				-- Optionally, set the color to a default or specific color
+				part.Color = Color3.new(0.8, 0.8, 0.8) -- Light gray color
+			end
+		end
+		print("All parts changed to Smooth Plastic.")
+	end
+
+	-- Call the function to execute
+	changePartsToSmoothPlastic()
+end)
+
+Frame_2.Parent = Frame
+Frame_2.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Frame_2.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Frame_2.BorderSizePixel = 0
+Frame_2.Position = UDim2.new(0.0128493914, 0, 0.0485384203, 0)
+Frame_2.Size = UDim2.new(0, 500, 0, 58)
+
+-- Scripts:
+
+local function EGXH_fake_script() -- Frame.LocalScript 
+	local script = Instance.new('LocalScript', Frame)
+
+	-- LocalScript inside the Frame (or ScreenGui if you prefer)
+	local UIS = game:GetService("UserInputService")
+	local frame = script.Parent
+	
+	local dragging
+	local dragInput
+	local dragStart
+	local startPos
+	
+	-- Function to update the position of the frame
+	local function update(input)
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+	
+	-- Make GUI draggable
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+	
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+	
+	frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			dragInput = input
+		end
+	end)
+	
+	UIS.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			update(input)
+		end
+	end)
+	
+	-- Toggle GUI visibility with the 'X' key
+	UIS.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed then return end  -- If the input was processed by the game, do nothing
+	
+		if input.KeyCode == Enum.KeyCode.X then
+			frame.Visible = not frame.Visible
+		end
+	end)
+	
 end
+coroutine.wrap(EGXH_fake_script)()
