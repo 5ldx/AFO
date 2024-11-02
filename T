@@ -8,7 +8,7 @@ local UserInputService = game:GetService("UserInputService")
 local defaultColor = Color3.fromRGB(255, 0, 0)  -- Really bright red
 local highlightColor = Color3.fromRGB(0, 255, 0)  -- Bright green
 local textSize = 14 * 1.4  -- Font size increased by 40%
-local toggleKey = Enum.KeyCode.T  -- Key to toggle ESP
+local toggleKey = Enum.KeyCode.L  -- Key to toggle ESP
 local espEnabled = true
 
 -- Helper function to create Drawing objects
