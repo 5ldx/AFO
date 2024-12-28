@@ -4,6 +4,7 @@ local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
 local UserInputService = game:GetService("UserInputService")
 
+
 -- Configuration
 local defaultColor = Color3.fromRGB(255, 0, 0)  -- Bright red
 local highlightColor = Color3.fromRGB(0, 255, 0)  -- Bright green
